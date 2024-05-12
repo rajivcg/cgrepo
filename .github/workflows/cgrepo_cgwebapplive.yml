@@ -1,57 +1,66 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy ASP.Net Core app to Azure Web App - cgwebapplive
+name: Deploy ASP.NET Core App to Azure Web App
 
 on:
   push:
     branches:
-      - cgrepo
+      - main
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '7.0'  # Use a stable .NET version
+  APP_NAME: cgwebapplive
+  AZURE_WEBAPP_SLOT: Production
 
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up .NET Core
+      - name: Setup .NET
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '8.x'
-          include-prerelease: true
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Build with dotnet
+      - name: Build
         run: dotnet build --configuration Release
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+      - name: Publish
+        run: dotnet publish -c Release -o publish
 
-      - name: Upload artifact for deployment job
+      - name: Upload artifact for deployment
         uses: actions/upload-artifact@v3
         with:
-          name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          name: dotnet-publish-output
+          path: publish
 
   deploy:
     runs-on: windows-latest
     needs: build
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-
+    environment: 
+      name: ${{ env.AZURE_WEBAPP_SLOT }}
+      url: ${{ steps.deploy_to_webapp.outputs.webapp-url }}
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: .net-app
+          name: dotnet-publish-output
 
       - name: Deploy to Azure Web App
-        id: deploy-to-webapp
+        id: deploy_to_webapp
         uses: azure/webapps-deploy@v2
         with:
-          app-name: 'cgwebapplive'
-          slot-name: 'Production'
+          app-name: ${{ env.APP_NAME }}
+          slot-name: ${{ env.AZURE_WEBAPP_SLOT }}
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_C8E0D68917ED4F73890074527BFC7EDB }}
           package: .
+
+      - name: Check deployment status
+        if: ${{ steps.deploy_to_webapp.outcome }} != 'success'
+        run: echo "Deployment failed. Check logs for details."
+        continue-on-error: true
