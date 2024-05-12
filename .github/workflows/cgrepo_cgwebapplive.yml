@@ -1,4 +1,4 @@
-name: Deploy ASP.NET Core App to Azure Web App
+name: Build and Deploy ASP.NET Core App to Azure Web Apps
 
 on:
   push:
@@ -11,7 +11,8 @@ on:
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: '7.0'  # Use a stable .NET version
+  DOTNET_VERSION: '7.0'  # Using a stable version of .NET
+  NODE_VERSION: '20.x'   # Updated Node.js version
   APP_NAME: cgwebapplive
   AZURE_WEBAPP_SLOT: Production
 
@@ -27,10 +28,18 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Build
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build .NET application
         run: dotnet build --configuration Release
 
-      - name: Publish
+      - name: Publish .NET application
         run: dotnet publish -c Release -o publish
 
       - name: Upload artifact for deployment
