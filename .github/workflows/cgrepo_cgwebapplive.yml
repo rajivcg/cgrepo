@@ -1,63 +1,20 @@
-name: .NET Build and Deployment Workflow
-
 on:
   push:
     branches:
-      - main
-      - 'feature/**'
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
-
+      - master
+name: 🚀 Deploy website on push
 jobs:
-  build:
-    runs-on: windows-latest
-
+  web-deploy:
+    name: 🎉 Deploy
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET Core
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: '7.0'
-
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v1.0.2  # Check for an updated version
-
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v1.0.5  # Check for an updated version
-
-      - name: Restore NuGet packages
-        run: nuget restore MySolution.sln
-
-      - name: Build the project
-        run: msbuild MyProject.csproj /p:Configuration=Release
-
-      - name: Publish the project
-        run: dotnet publish -c Release -o publish
-
-      - name: Upload artifact for deployment
-        uses: actions/upload-artifact@v3
-        with:
-          name: published-app
-          path: publish
-
-  deploy:
-    runs-on: windows-latest
-    needs: build
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: published-app
-
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: 'your-app-name'
-          slot-name: 'production'
-          publish-profile: ${{ secrets.AZURE_APP_SERVICE_PUBLISH_PROFILE }}
-          package: .
-
+    - name: 🚚 Get latest code
+      uses: actions/checkout@v2.3.2
+    
+    - name: 📂 Sync files
+      uses: SamKirkland/FTP-Deploy-Action@4.0.0
+      with:
+        server: de3.fcomet.com
+        username: ${{ secrets.ftp_username}}
+        password: ${{ secrets.ftp_password }}
+        server-dir: /public_html/production.watch-learn.com/
